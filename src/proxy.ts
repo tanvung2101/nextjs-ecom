@@ -2,37 +2,61 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function proxy(request: NextRequest) {
-  const accessToken = request.cookies.get("accessToken")?.value;
-  console.log("acctoken",accessToken)
-  const { pathname } = request.nextUrl;
+  const accessToken = request.cookies.get("accessToken")?.value
+  const { pathname } = request.nextUrl
 
-  // ===== đã login → không cho vào login =====
-  if (accessToken && pathname === "/login") {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
+  // =========================
+  // PUBLIC ROUTES
+  // =========================
+  const publicRoutes = ["/login", "/register"]
 
-  // ===== route cần login =====
-  const protectedRoutes = ["/profile", "/cart", "/payment", "/user", "/orders", "/register"];
+  const isPublic = publicRoutes.some((route) =>
+    pathname.startsWith(route)
+  )
+
+  // =========================
+  // PROTECTED ROUTES
+  // =========================
+  const protectedRoutes = [
+    "/profile",
+    "/cart",
+    "/payment",
+    "/user",
+    "/orders",
+  ]
 
   const isProtected = protectedRoutes.some((route) =>
     pathname.startsWith(route)
-  );
+  )
 
-  if (!accessToken && isProtected) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  // =========================
+  // LOGIC
+  // =========================
+
+  // đã login → không cho vào login/register
+  if (accessToken && isPublic) {
+    return NextResponse.redirect(new URL("/", request.url))
   }
 
-  return NextResponse.next();
+  // chưa login → không cho vào protected
+  if (!accessToken && isProtected) {
+    return NextResponse.redirect(new URL("/login", request.url))
+  }
+
+  return NextResponse.next()
 }
 
+// =========================
+// MATCHER
+// =========================
 export const config = {
   matcher: [
     "/login",
+    "/register",
     "/profile/:path*",
     "/cart/:path*",
     "/payment/:path*",
     "/user/:path*",
     "/orders/:path*",
-    "/register/:path*"
   ],
 };
